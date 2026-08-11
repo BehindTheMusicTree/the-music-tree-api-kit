@@ -4,6 +4,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "the_music_tree_api_kit",
+    "tests.fixture_app",
 ]
 
 DATABASES = {
