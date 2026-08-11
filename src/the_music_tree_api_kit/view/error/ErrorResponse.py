@@ -143,7 +143,7 @@ class ErrorResponse:
     def _from_unhandled_integrity_error(exception: IntegrityError) -> JsonResponse:
         error_detail: dict[str, Any] = {
             "message": ErrorResponseFields.DefaultFieldValidationValues.DbIntegrityError.MESSAGE,
-            "code": ApiErrorCodeNumeric.SYSTEM_INTERNAL_ERROR,
+            "code": ErrorResponseFields.DefaultFieldValidationValues.DbIntegrityError.CODE,
         }
         return ErrorResponse.create_error_response(
             error_detail=error_detail, api_error_code=ApiErrorCodeNumeric.SYSTEM_INTERNAL_ERROR
