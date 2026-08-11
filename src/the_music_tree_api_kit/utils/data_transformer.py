@@ -105,8 +105,7 @@ def get_first_value_str_if_exists_in_str_dict_or_none(str_dict: dict, key: str) 
         value = str_dict[key]
         if isinstance(value, list):
             return value[0] if value else None
-    else:
-        return None
+        return value
     return None
 
 
