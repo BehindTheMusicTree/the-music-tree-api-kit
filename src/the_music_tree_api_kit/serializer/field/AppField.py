@@ -133,5 +133,5 @@ class AppField(Field):
         return None
 
     def to_internal_value(self, data: Any) -> Any:
-        """To prevent suclasses' calls to super().to_internal_value() from raising NotImplementedError."""
+        """To prevent subclasses' calls to super().to_internal_value() from raising NotImplementedError."""
         return None
