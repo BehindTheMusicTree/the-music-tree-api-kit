@@ -8,7 +8,7 @@ from the_music_tree_api_kit.utils import data_transformer
 
 class AppFilterSet(FilterSet):
     # Pagination parameters that should not be considered as filters
-    allowed_non_filter_params = {"page", "page_size"}
+    allowed_non_filter_params = {"page", "page_size", "pageSize"}
     strict = False
 
     @property
@@ -36,6 +36,5 @@ class AppFilterSet(FilterSet):
 
         queryset = super().qs
         if not isinstance(queryset, BaseQuerySet):
-            # If the queryset isn't already a BaseQuerySet, create one
             queryset = BaseQuerySet(queryset.model, using=queryset.db)
         return queryset
