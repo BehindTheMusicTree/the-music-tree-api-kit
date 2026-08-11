@@ -19,7 +19,7 @@ from the_music_tree_api_kit.serializer.SerializerType import SerializerType
 from the_music_tree_api_kit.view.pagination.AppPagination import AppPagination
 
 # UUID format: 8-4-4-4-12 hexadecimal digits
-UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
 
 T = TypeVar("T", bound=BaseModel)
 
