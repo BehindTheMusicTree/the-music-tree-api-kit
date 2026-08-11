@@ -36,5 +36,6 @@ class AppFilterSet(FilterSet):
 
         queryset = super().qs
         if not isinstance(queryset, BaseQuerySet):
-            queryset = BaseQuerySet(queryset.model, using=queryset.db)
+            # Wrap without losing the filters/query already applied by super().qs
+            queryset = BaseQuerySet(queryset.model, query=queryset.query, using=queryset.db)
         return queryset
