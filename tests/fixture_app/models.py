@@ -6,6 +6,7 @@ from the_music_tree_api_kit.field.foreign_key.PrivateForeignKey import PrivateFo
 from the_music_tree_api_kit.field.foreign_key.PrivateManyToManyField import PrivateManyToManyField
 from the_music_tree_api_kit.field.foreign_key.PrivateOneToOneField import PrivateOneToOneField
 from the_music_tree_api_kit.private_unique_resource.PrivateUniqueResource import PrivateUniqueResource
+from the_music_tree_api_kit.trackable_play_count.TrackablePlayCount import TrackablePlayCount
 
 
 class FixtureCategoryManager(BaseManager):
@@ -45,6 +46,23 @@ class FixtureItem(PrivateUniqueResource):
     related_categories = PrivateManyToManyField(FixtureCategory, related_name="related_items")
 
     objects = FixtureItemManager()
+
+    class Meta:
+        app_label = "fixture_app"
+
+
+class FixturePlayableManager(BaseManager):
+    def get_default_ordering(self):
+        return ["-created_on"]
+
+    def delete_instance(self, instance):
+        instance.delete()
+
+
+class FixturePlayable(TrackablePlayCount):
+    _name = AppCharField(db_column="name", max_length=255)
+
+    objects = FixturePlayableManager()
 
     class Meta:
         app_label = "fixture_app"

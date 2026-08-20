@@ -1,6 +1,6 @@
 [project]
 name = "the-music-tree-api-kit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Shared generic HTTP-layer Django library (error handling, pagination, filtering, viewsets) for hear-the-music-tree-api and grow-the-music-tree-api"
 readme = "README.md"
 license = { file = "LICENSE" }

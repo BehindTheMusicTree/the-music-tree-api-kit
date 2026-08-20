@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.db.utils import IntegrityError
 
-from tests.fixture_app.models import FixtureCategory, FixtureItem
+from tests.fixture_app.models import FixtureCategory, FixtureItem, FixturePlayable
 
 
 @pytest.mark.django_db
@@ -46,3 +46,16 @@ def test_foreign_key_family_relations():
     assert item.partner_category_id == partner.pk
     assert set(item.related_categories.all()) == {category, partner}
     assert item in category.items.all()
+
+
+@pytest.mark.django_db
+def test_trackable_play_count_defaults_and_increments():
+    user = get_user_model().objects.create(username="fixture-user")
+
+    playable = FixturePlayable.objects.create(user=user, _name="track")
+    assert playable.play_count == 0
+
+    playable.play_count += 1
+    playable.save(update_fields=["play_count"])
+    playable.refresh_from_db()
+    assert playable.play_count == 1
