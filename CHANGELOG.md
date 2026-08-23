@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `HostValidationMiddleware`, hoisted from `hear-the-music-tree-api`, fixing a bug where the
+  middleware manually re-checked the full `host:port` string against `ALLOWED_HOSTS` after
+  Django's own `HttpRequest.get_host()` already checked it (correctly, with the port stripped).
+  That redundant check required every `ALLOWED_HOSTS` entry to be duplicated with and without its
+  port to satisfy both checks; the shared version relies solely on `get_host()`.
+
 ## [0.2.0] - 2026-08-20
 
 ### Added
