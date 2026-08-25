@@ -87,6 +87,12 @@ wheels = [
 ]
 
 [[package]]
+name = "djangorestframework-camel-case"
+version = "1.4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/87/647ce93053cb5e35e07bded676340774fe43190388b885c54aff47d8557b/djangorestframework-camel-case-1.4.2.tar.gz", hash = "sha256:cdae75846648abb6585c7470639a1d2fb064dc45f8e8b62aaa50be7f1a7a61f4", size = 8839, upload-time = "2023-02-13T15:28:11.941Z" }
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -214,12 +220,13 @@ wheels = [
 
 [[package]]
 name = "the-music-tree-api-kit"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
     { name = "django-filter" },
     { name = "djangorestframework" },
+    { name = "djangorestframework-camel-case" },
 ]
 
 [package.optional-dependencies]
@@ -237,6 +244,7 @@ requires-dist = [
     { name = "django-filter", specifier = "==25.2" },
     { name = "django-stubs", marker = "extra == 'dev'", specifier = "==5.2.1" },
     { name = "djangorestframework", specifier = "==3.15.1" },
+    { name = "djangorestframework-camel-case", specifier = "==1.4.2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "==1.18.2" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==8.1.1" },
     { name = "pytest-django", marker = "extra == 'dev'", specifier = "==4.8.0" },
