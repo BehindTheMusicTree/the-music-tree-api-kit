@@ -13,6 +13,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `CamelToSnakeMiddleware`, hoisted from `hear-the-music-tree-api`, plus a
+  `djangorestframework-camel-case` dependency, so both `hear-the-music-tree-api` and
+  `grow-the-music-tree-api` can share one camelCase JSON contract instead of only `hear`
+  having it. `grow-the-music-tree-api` previously rendered snake_case JSON with no
+  conversion layer at all, which diverged from `@behindthemusictree/app-kit`'s Zod schemas
+  (written to the camelCase contract) and caused schema validation failures on every
+  genre-playlist response.
+
 ## [0.3.0] - 2026-08-24
 
 ### Added
