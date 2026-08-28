@@ -11,3 +11,6 @@ wheels/
 
 # Local scratch (PR descriptions, etc.)
 .local/
+
+# Claude Code worktrees
+.claude/worktrees/
