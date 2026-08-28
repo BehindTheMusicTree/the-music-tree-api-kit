@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `add_loopback_hosts`, a shared helper appending the loopback hosts (`127.0.0.1`,
+  `127.0.0.1:<port>`, `localhost`, `localhost:<port>`) that Docker/Coolify healthchecks hit
+  from inside the container, to `ALLOWED_HOSTS`. Both `hear-the-music-tree-api` and
+  `grow-the-music-tree-api` need these regardless of their externally exposed hosts, since
+  two independent healthcheck mechanisms (the Dockerfile's own `HEALTHCHECK` and Coolify's
+  built-in container healthcheck) hit different loopback hosts and neither is configurable.
+
 ## [0.4.0] - 2026-08-25
 
 ### Added
