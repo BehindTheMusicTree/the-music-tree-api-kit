@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-28
+
 ### Added
 
 - `add_loopback_hosts`, a shared helper appending the loopback hosts (`127.0.0.1`,
