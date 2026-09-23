@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Local knowledge-graph tooling (`graphify`) wired up for Claude Code: `CLAUDE.md` section and
+  `.claude/settings.json` PreToolUse hooks so Claude queries the graph before raw file searches.
+  Graph output (`graphify-out/`) is gitignored, dev-only.
+
 ### Changed
 
 - Renamed the `test.yml` GitHub Actions workflow to `validate.yml`.
