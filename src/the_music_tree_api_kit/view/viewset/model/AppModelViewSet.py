@@ -77,18 +77,28 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
             data[PrivateFields.USER] = request.user
         return data
 
+    def _get_manager_write_kwargs(self, request: Request) -> dict[str, Any]:
+        """
+        Extra kwargs passed to the manager's `create`/`update_instance`/`delete_instance` on every
+        write. Override to thread request-derived context (e.g. an acting-admin identifier) down to
+        a manager that declares a matching keyword argument.
+        """
+        return {}
+
     def _create_instance(self, request: Request, create_data: dict[str, Any]) -> T:
         serializer_class = self._require_serializer(SerializerType.CREATE)
         serializer = serializer_class(data=create_data, context={"request": request})
         validated_data = self._get_validated_data(serializer)
 
-        return self.model_class.objects.create(**validated_data)
+        return self.model_class.objects.create(**validated_data, **self._get_manager_write_kwargs(request))
 
     def _update_instance(self, request: Request, instance: T, update_data: dict[str, Any]) -> T:
         serializer_class = self._require_serializer(SerializerType.UPDATE)
         serializer = serializer_class(instance=instance, data=update_data, partial=True, context={"request": request})
         validated_data = self._get_validated_data(serializer)
-        return self.model_class.objects.update_instance(instance, **validated_data)
+        return self.model_class.objects.update_instance(
+            instance, **validated_data, **self._get_manager_write_kwargs(request)
+        )
 
     def _get_paginated_list_response(
         self, queryset, serializer_type=SerializerType.SIMPLE, status_code=status.HTTP_200_OK
@@ -139,7 +149,7 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     def _handle_destroy(self) -> Response:
-        self.model_class.objects.delete_instance(self.get_object())
+        self.model_class.objects.delete_instance(self.get_object(), **self._get_manager_write_kwargs(self.request))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def paginate_queryset(self, queryset) -> list[T] | QuerySet[T] | None:
