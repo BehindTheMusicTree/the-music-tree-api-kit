@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Added `AppModelViewSet._get_manager_write_kwargs(request)`, an overridable hook (default `{}`) spread into every `create`/`update_instance`/`delete_instance` manager call, so subclasses can thread request-derived context (e.g. an acting-admin identifier) down to a manager without every manager needing to accept it.
+
 ### Changed
 
 - Renamed the `test.yml` GitHub Actions workflow to `validate.yml`.
