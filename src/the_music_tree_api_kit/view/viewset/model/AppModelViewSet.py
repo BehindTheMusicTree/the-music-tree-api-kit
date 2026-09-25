@@ -15,6 +15,7 @@ from the_music_tree_api_kit.base.BaseModel import BaseModel
 from the_music_tree_api_kit.filtering.backend.ConsistentParametersFilterBackend import ConsistentParametersFilterBackend
 from the_music_tree_api_kit.filtering.set.AppFilterSet import AppFilterSet
 from the_music_tree_api_kit.private.Fields import Fields as PrivateFields
+from the_music_tree_api_kit.private.get_request_owner import get_request_owner
 from the_music_tree_api_kit.serializer.SerializerType import SerializerType
 from the_music_tree_api_kit.view.pagination.AppPagination import AppPagination
 
@@ -69,13 +70,25 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         validated_data_dict = getattr(serializer, "validated_data", {})
         if PrivateFields.USER not in validated_data_dict:
-            validated_data_dict[PrivateFields.USER] = self.request.user
+            validated_data_dict[PrivateFields.USER] = get_request_owner(self.request)
         return validated_data_dict
 
     def _inject_user(self, data: dict[str, Any], request: Request) -> dict[str, Any]:
         if PrivateFields.USER not in data:
-            data[PrivateFields.USER] = request.user
+            data[PrivateFields.USER] = get_request_owner(request)
         return data
+
+    def get_owner(self, request: Request) -> Any:
+        """
+        The user whose private rows this request reads and writes, resolved once per request into
+        `request.owner`. Defaults to the caller; override to return `None` to scope a resource to
+        ownerless, shared rows (`user IS NULL`) regardless of who is calling.
+        """
+        return request.user
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        request.owner = self.get_owner(request)
 
     def _get_manager_write_kwargs(self, request: Request) -> dict[str, Any]:
         """
@@ -175,7 +188,7 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
 
         try:
             if self.is_private_resource:
-                filter_kwargs = {self.lookup_field: lookup_value, "user": self.request.user}
+                filter_kwargs = {self.lookup_field: lookup_value, "user": get_request_owner(self.request)}
             else:
                 filter_kwargs = {
                     self.lookup_field: lookup_value,
@@ -206,9 +219,10 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
             return self.model_class.objects.none()
         request: Request = cast(Request, self.request)
         if self.is_private_resource:
-            if not request.user.is_authenticated:
+            owner = get_request_owner(request)
+            if owner is not None and not owner.is_authenticated:
                 return self.model_class.objects.none()
-            queryset = self.model_class.objects.filter(user=request.user)
+            queryset = self.model_class.objects.filter(user=owner)
         else:
             queryset = self.model_class.objects.all()
 

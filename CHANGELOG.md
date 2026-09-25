@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-25
+
+### Added
+
+- Added `AppModelViewSet.get_owner(request)`, resolved once per request into `request.owner`: the user whose private rows the request reads and writes. It defaults to `request.user`; override it to return `None` so a resource is scoped to ownerless, shared rows (`user IS NULL`) whatever the caller. The viewset's queryset, `get_object`, user injection on writes, and `PrivateUuidField` now all go through `get_request_owner(request)`. Covered by tests.
+
 ## [0.6.0] - 2026-09-24
 
 ### Added
