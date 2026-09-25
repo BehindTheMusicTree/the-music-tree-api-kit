@@ -4,6 +4,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from rest_framework.request import Request
 
+from the_music_tree_api_kit.private.get_request_owner import get_request_owner
 from the_music_tree_api_kit.uuid.UuidModel import UuidModel
 
 from ..AppUuidField import AppUuidField
@@ -21,7 +22,7 @@ class PrivateUuidField[T: models.Model](ForeignKeyField, AppUuidField):
 
     This field ensures that:
     1. The value is a valid UUID (via AppUuidField)
-    2. The referenced object exists and belongs to the current user (via ForeignKeyField)
+    2. The referenced object exists and belongs to the request's owner (via ForeignKeyField)
 
     For standard single-model foreign keys with user ownership:
         class PlaylistSerializer(serializers.ModelSerializer):
@@ -32,7 +33,7 @@ class PrivateUuidField[T: models.Model](ForeignKeyField, AppUuidField):
         request = self.context.get("request")
         if not isinstance(request, Request):
             raise ImproperlyConfigured("request must be a Request instance.")
-        return request.user
+        return get_request_owner(request)
 
     def get_queryset(self) -> Any:
         user = self.get_request_user()

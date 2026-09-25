@@ -84,3 +84,23 @@ def test_create_update_destroy_forward_manager_write_kwargs():
     assert manager.create_calls[-1]["actor"] == "admin@example.com"
     assert manager.update_calls[-1]["actor"] == "admin@example.com"
     assert manager.delete_calls[-1]["actor"] == "admin@example.com"
+
+
+class _OwnerlessViewSet(_ViewSetWithoutOverride):
+    def get_owner(self, request):
+        return None
+
+
+def test_create_injects_request_owner_over_caller():
+    viewset = _make_viewset(_OwnerlessViewSet)
+    viewset.request.owner = viewset.get_owner(viewset.request)
+
+    viewset._create_instance(request=viewset.request, create_data={})
+
+    assert viewset.model_class.objects.create_calls[-1] == {"user": None}
+
+
+def test_default_owner_is_caller():
+    viewset = _make_viewset(_ViewSetWithoutOverride)
+
+    assert viewset.get_owner(viewset.request) is viewset.request.user
