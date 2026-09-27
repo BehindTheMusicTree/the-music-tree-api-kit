@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-27
+
+### Added
+
+- Added `EagerLoadingMixin`. A serializer that mixes it in declares, in `setup_queryset(queryset, prefix="")`, the joins, prefetches and annotations its own fields read. A parent serializer composes the needs of nested serializers under a relation-path `prefix`. `AppModelViewSet` applies the list serializer's needs in `_get_paginated_list_response` and the detailed serializer's needs on retrieve, so nested fields stop costing one query per row. Serializers that don't mix it in behave exactly as before. Covered by list and retrieve query-count tests.
+
 ## [0.7.0] - 2026-09-25
 
 ### Added
