@@ -157,21 +157,23 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
 
     def _handle_post(self, request: Request) -> Response:
         instance = self._create_instance(request=request, create_data=request.data)
-        serializer = self._require_serializer(SerializerType.DETAILED)(instance=instance)
-        return self._get_post_created_response(serializer)
+        return self._get_post_created_response(self._get_detailed_serializer(instance))
 
     def _handle_retrieve(self) -> Response:
-        serializer_class = self._require_serializer(SerializerType.DETAILED)
-        instance = self.get_object()
-        if issubclass(serializer_class, EagerLoadingMixin):
-            # Re-read through the serializer's queryset: get_object may be overridden and can't take one.
-            instance = serializer_class.setup_queryset(self.model_class.objects.filter(pk=instance.pk)).get()
-        return Response(serializer_class(instance).data)
+        return Response(self._get_detailed_serializer(self.get_object()).data)
 
     def _handle_update(self, request: Request) -> Response:
         updated_instance = self._update_instance(request=request, instance=self.get_object(), update_data=request.data)
-        serializer = self._require_serializer(SerializerType.DETAILED)(instance=updated_instance)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+        return Response(data=self._get_detailed_serializer(updated_instance).data, status=status.HTTP_200_OK)
+
+    def _get_detailed_serializer(self, instance: T) -> BaseSerializer:
+        serializer_class = self._require_serializer(SerializerType.DETAILED)
+        if issubclass(serializer_class, EagerLoadingMixin):
+            # Re-read through the serializer's queryset: get_object may be overridden and can't take one.
+            # A row deleted in between keeps the already-loaded instance rather than turning into a 500.
+            queryset = type(instance)._default_manager.filter(pk=instance.pk)
+            instance = serializer_class.setup_queryset(queryset).first() or instance
+        return serializer_class(instance=instance)
 
     def _handle_destroy(self) -> Response:
         self.model_class.objects.delete_instance(self.get_object(), **self._get_manager_write_kwargs(self.request))

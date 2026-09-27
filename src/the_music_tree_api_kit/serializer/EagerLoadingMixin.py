@@ -13,6 +13,9 @@ class EagerLoadingMixin:
         def setup_queryset(cls, queryset, prefix=""):
             queryset = queryset.select_related(f"{prefix}criteria")
             return CriteriaSerializer.setup_queryset(queryset, prefix=f"{prefix}criteria__")
+
+    Detailed responses re-read the instance through `setup_queryset`, so attributes or annotations an
+    overridden `get_object` put on the instance are not seen by an opted-in serializer.
     """
 
     @classmethod

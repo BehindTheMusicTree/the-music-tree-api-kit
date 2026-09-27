@@ -87,3 +87,28 @@ def test_retrieve_applies_serializer_eager_loading():
     assert not any(
         query["sql"].startswith('SELECT "fixture_app_fixturecategory"') for query in queries.captured_queries
     )
+
+
+@pytest.mark.django_db
+def test_detailed_serializer_used_by_post_and_update_applies_eager_loading():
+    user = get_user_model().objects.create(username="fixture-user")
+    _create_items(user, 0, 1)
+    item = FixtureItem.objects.get()
+
+    with CaptureQueriesContext(connection) as queries:
+        data = _ItemViewSet()._get_detailed_serializer(item).data
+
+    assert data["category"]["uuid"] == str(item.category.uuid)
+    assert not any(
+        query["sql"].startswith('SELECT "fixture_app_fixturecategory"') for query in queries.captured_queries
+    )
+
+
+@pytest.mark.django_db
+def test_detailed_serializer_keeps_instance_deleted_before_re_read():
+    user = get_user_model().objects.create(username="fixture-user")
+    _create_items(user, 0, 1)
+    item = FixtureItem.objects.select_related("category").get()
+    FixtureItem.objects.filter(pk=item.pk).delete()
+
+    assert _ItemViewSet()._get_detailed_serializer(item).instance is item
