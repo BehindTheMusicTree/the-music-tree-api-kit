@@ -16,6 +16,7 @@ from the_music_tree_api_kit.filtering.backend.ConsistentParametersFilterBackend 
 from the_music_tree_api_kit.filtering.set.AppFilterSet import AppFilterSet
 from the_music_tree_api_kit.private.Fields import Fields as PrivateFields
 from the_music_tree_api_kit.private.get_request_owner import get_request_owner
+from the_music_tree_api_kit.serializer.EagerLoadingMixin import EagerLoadingMixin
 from the_music_tree_api_kit.serializer.SerializerType import SerializerType
 from the_music_tree_api_kit.view.pagination.AppPagination import AppPagination
 
@@ -127,17 +128,24 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
         Returns:
             Response with pagination metadata and the specified status code
         """
-        queryset = self.filter_queryset(queryset)
+        serializer_class = self._require_serializer(serializer_type)
+        queryset = self._eager_load(serializer_class, self.filter_queryset(queryset))
         page = self.paginate_queryset(queryset)
 
         if page is not None:
-            serializer = self._require_serializer(serializer_type)(page, many=True)
+            serializer = serializer_class(page, many=True)
             response = self.get_paginated_response(serializer.data)
             response.status_code = status_code
             return response
 
-        serializer = self._require_serializer(serializer_type)(queryset, many=True)
+        serializer = serializer_class(queryset, many=True)
         return Response(serializer.data, status=status_code)
+
+    @staticmethod
+    def _eager_load(serializer_class: type[BaseSerializer], queryset: Any) -> Any:
+        if isinstance(queryset, QuerySet) and issubclass(serializer_class, EagerLoadingMixin):
+            return serializer_class.setup_queryset(queryset)
+        return queryset
 
     def _handle_list(self) -> Response:
         queryset = self.get_queryset()
@@ -149,17 +157,23 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
 
     def _handle_post(self, request: Request) -> Response:
         instance = self._create_instance(request=request, create_data=request.data)
-        serializer = self._require_serializer(SerializerType.DETAILED)(instance=instance)
-        return self._get_post_created_response(serializer)
+        return self._get_post_created_response(self._get_detailed_serializer(instance))
 
     def _handle_retrieve(self) -> Response:
-        serializer = self._require_serializer(SerializerType.DETAILED)(self.get_object())
-        return Response(serializer.data)
+        return Response(self._get_detailed_serializer(self.get_object()).data)
 
     def _handle_update(self, request: Request) -> Response:
         updated_instance = self._update_instance(request=request, instance=self.get_object(), update_data=request.data)
-        serializer = self._require_serializer(SerializerType.DETAILED)(instance=updated_instance)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+        return Response(data=self._get_detailed_serializer(updated_instance).data, status=status.HTTP_200_OK)
+
+    def _get_detailed_serializer(self, instance: T) -> BaseSerializer:
+        serializer_class = self._require_serializer(SerializerType.DETAILED)
+        if issubclass(serializer_class, EagerLoadingMixin):
+            # Re-read through the serializer's queryset: get_object may be overridden and can't take one.
+            # A row deleted in between keeps the already-loaded instance rather than turning into a 500.
+            queryset = type(instance)._default_manager.filter(pk=instance.pk)
+            instance = serializer_class.setup_queryset(queryset).first() or instance
+        return serializer_class(instance=instance)
 
     def _handle_destroy(self) -> Response:
         self.model_class.objects.delete_instance(self.get_object(), **self._get_manager_write_kwargs(self.request))
