@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-30
+
 ### Added
 
 - Added `StrictBooleanFilter` (`filtering/filter/StrictBooleanFilter.py`), a `BooleanFilter` whose field accepts only `true`, `false`, `1`, `0` or an empty value (case-insensitive) and rejects anything else, instead of silently ignoring it as django-filter's `NullBooleanField` does. Covered by tests.
