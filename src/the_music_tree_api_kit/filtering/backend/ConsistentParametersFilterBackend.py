@@ -2,6 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from the_music_tree_api_kit.exception.validation.app.AppValidationException import AppValidationException
 from the_music_tree_api_kit.exception.validation.FieldValidationErrorCode import FieldValidationErrorCode
+from the_music_tree_api_kit.utils import data_transformer
 
 
 class ConsistentParametersFilterBackend(DjangoFilterBackend):
@@ -47,6 +48,26 @@ class ConsistentParametersFilterBackend(DjangoFilterBackend):
                     )
 
         return kwargs
+
+    def filter_queryset(self, request, queryset, view):
+        filterset = self.get_filterset(request, queryset, view)
+        if filterset is None:
+            return queryset
+
+        if not filterset.is_valid():
+            invalid_filters = sorted(data_transformer.to_camel_case(name) for name in filterset.errors)
+            if len(invalid_filters) == 1:
+                raise AppValidationException(
+                    field_name=invalid_filters[0],
+                    message=next(iter(filterset.errors.values()))[0],
+                    field_validation_error_code=FieldValidationErrorCode.INVALID_FILTER,
+                )
+            raise AppValidationException(
+                field_name=", ".join(invalid_filters),
+                message="Invalid filter values detected",
+                field_validation_error_code=FieldValidationErrorCode.INVALID_FILTERS,
+            )
+        return filterset.qs
 
     def get_schema_operation_parameters(self, view):
         """

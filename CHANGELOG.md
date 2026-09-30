@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Added `StrictBooleanFilter` (`filtering/filter/StrictBooleanFilter.py`), a `BooleanFilter` whose field accepts only `true`, `false`, `1`, `0` or an empty value (case-insensitive) and rejects anything else, instead of silently ignoring it as django-filter's `NullBooleanField` does. Covered by tests.
+
+### Changed
+
+- `ConsistentParametersFilterBackend` now turns an invalid filterset form (e.g. `?isUnacceptedRoot=yes` on a `StrictBooleanFilter`) into a 400 `invalid_filter` error, or `invalid_filters` when several filters are invalid, in the same shape as the unknown-filter error, instead of django-filter's generic `invalid` validation error.
+
 ## [0.8.0] - 2026-09-27
 
 ### Added
