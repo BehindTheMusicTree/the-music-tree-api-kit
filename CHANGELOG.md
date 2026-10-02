@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-02
+
 ### Fixed
 
 - `AppModelViewSet` list querysets now append `pk` to the manager's default ordering. Default orderings such as `created_on` aren't unique, so OFFSET pagination over tied rows could repeat or skip items between pages. Covered by tests.
