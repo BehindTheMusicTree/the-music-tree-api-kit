@@ -241,7 +241,8 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
             queryset = self.model_class.objects.all()
 
         ordering_fields = cast(BaseModel, self.model_class).objects.get_default_ordering()
-        return queryset.order_by(*ordering_fields)
+        # pk tie-breaker: default orderings (e.g. created_on) aren't unique, and OFFSET pages over tied rows can repeat or skip them.
+        return queryset.order_by(*ordering_fields, "pk")
 
     def get_queryset(self):
         return self.queryset
