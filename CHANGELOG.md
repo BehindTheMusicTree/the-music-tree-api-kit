@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `filtering.filter.char` (`EmptiableCharFilter`, `NonEmptiableCharFilter`, `EnumCharFilter`, `OptionalEnumCharFilter`, `RelatedObjectCharFilter`), `filtering.filter.foreign_key` (`ForeignKeyFilter`, `NonSelfReferencingFilter`, `DescendantAwareFilter`) and `filtering.set.private_unique_resource` (`PrivateUniqueResourceFilterSet` + `Fields`), moved from the grow/hear APIs so both share one copy. Covered by tests.
+
 ## [0.9.1] - 2026-10-02
 
 ### Fixed
