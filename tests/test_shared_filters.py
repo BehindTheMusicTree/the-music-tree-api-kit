@@ -111,6 +111,13 @@ def test_invalid_values_are_rejected(items, query, code):
 
 
 @pytest.mark.django_db
+def test_foreign_key_error_uses_public_field_name(items):
+    response = _list(items, "partner=not-a-uuid")
+    assert response.status_code == 400
+    assert list(json.loads(response.content)["details"]["fieldErrors"]) == ["partner"]
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("instance_pk", "is_descendant", "code"),
     [("self", False, "self_reference"), ("other", True, "ancestor_reference")],
