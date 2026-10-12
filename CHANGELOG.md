@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-13
+
 ### Fixed
 
 - `ForeignKeyFilter` reports invalid-UUID errors under the public query param (`field_name_public`, e.g. `parent`) instead of the internal ORM path, restoring hear's pre-move error contract. Covered by a test.
