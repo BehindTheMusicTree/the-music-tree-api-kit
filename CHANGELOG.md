@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `ErrorResponse` / `custom_exception_handler` map DRF `NotFound` to 404 `not_found` through the existing `Http404` path, keeping its detail message, instead of a 500 `internal_error`. Any other DRF `APIException` without a dedicated handler (e.g. `Throttled`, `NotAcceptable`, custom subclasses) now keeps its own `status_code` and `default_code` instead of collapsing into a 500; this fallback runs after the handler registry, so handlers consumers register for their own `APIException` subclasses still win. Exceptions that already had handlers are unchanged. Covered by tests.
+
 ## [0.10.1] - 2026-10-13
 
 ### Fixed
