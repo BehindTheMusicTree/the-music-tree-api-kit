@@ -6,9 +6,11 @@ from django.db import IntegrityError
 from django.http import Http404, JsonResponse
 from rest_framework import status
 from rest_framework.exceptions import (
+    APIException,
     AuthenticationFailed,
     MethodNotAllowed,
     NotAuthenticated,
+    NotFound,
     ParseError,
     PermissionDenied,
     UnsupportedMediaType,
@@ -63,9 +65,12 @@ class ErrorResponse:
 
     @staticmethod
     def create_error_response(
-        error_detail, api_error_code: ApiErrorCodeNumeric = ApiErrorCodeNumeric.VALIDATION_INVALID_INPUT
+        error_detail,
+        api_error_code: ApiErrorCodeNumeric = ApiErrorCodeNumeric.VALIDATION_INVALID_INPUT,
+        http_status: int | None = None,
     ) -> JsonResponse:
-        http_status = ErrorResponseFields.ERROR_TO_HTTP_STATUS.get(api_error_code, status.HTTP_400_BAD_REQUEST)
+        if http_status is None:
+            http_status = ErrorResponseFields.ERROR_TO_HTTP_STATUS.get(api_error_code, status.HTTP_400_BAD_REQUEST)
         status_message = ErrorResponseFields.STATUS_MESSAGES.get(http_status, "An error occurred")
 
         response_data = {
@@ -435,6 +440,29 @@ class ErrorResponse:
         )
 
     @staticmethod
+    def _from_api_exception(exception: APIException) -> JsonResponse:
+        """Fallback for DRF APIExceptions without a dedicated handler (e.g. Throttled, NotAcceptable, custom
+        subclasses): keep the exception's own status_code instead of collapsing it into a 500."""
+        detail = exception.detail
+        message = str(detail) if isinstance(detail, str) else str(exception.default_detail)
+        http_status = exception.status_code
+        api_error_code = next(
+            (
+                code
+                for code, code_status in ErrorResponseFields.ERROR_TO_HTTP_STATUS.items()
+                if code_status == http_status
+            ),
+            ApiErrorCodeNumeric.SYSTEM_INTERNAL_ERROR
+            if http_status >= status.HTTP_500_INTERNAL_SERVER_ERROR
+            else ApiErrorCodeNumeric.BUSINESS_INVALID_OPERATION,
+        )
+        return ErrorResponse.create_error_response(
+            error_detail={"message": message, "code": exception.default_code},
+            api_error_code=api_error_code,
+            http_status=http_status,
+        )
+
+    @staticmethod
     def _from_disallowed_host_exception(exception: DisallowedHost) -> JsonResponse:
         return ErrorResponse.create_error_response(
             error_detail={"message": "Invalid host header", "code": "disallowed_host"},
@@ -461,6 +489,8 @@ ErrorResponse.register_handler((NotAuthenticated, AuthenticationFailed), ErrorRe
 ErrorResponse.register_handler(ParseError, ErrorResponse._from_content_type_exception)
 ErrorResponse.register_handler(UnsupportedMediaType, ErrorResponse._from_unsupported_media_type_exception)
 ErrorResponse.register_handler(MethodNotAllowed, ErrorResponse._from_method_not_allowed_exception)
-ErrorResponse.register_handler(Http404, ErrorResponse._from_http_404_exception)
+ErrorResponse.register_handler((Http404, NotFound), ErrorResponse._from_http_404_exception)
 ErrorResponse.register_handler(PermissionDenied, ErrorResponse._from_permission_denied_exception)
 ErrorResponse.register_handler(DisallowedHost, ErrorResponse._from_disallowed_host_exception)
+# Must stay last: the registry is first-match, so specific APIException handlers above take precedence.
+ErrorResponse.register_handler(APIException, ErrorResponse._from_api_exception)
