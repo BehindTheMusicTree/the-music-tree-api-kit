@@ -457,7 +457,7 @@ class ErrorResponse:
             else ApiErrorCodeNumeric.BUSINESS_INVALID_OPERATION,
         )
         return ErrorResponse.create_error_response(
-            error_detail={"message": message, "code": exception.default_code},
+            error_detail={"message": message, "code": getattr(detail, "code", None) or exception.default_code},
             api_error_code=api_error_code,
             http_status=http_status,
         )
@@ -480,6 +480,10 @@ class ErrorResponse:
         for exception_types, handler_fn in cls._handler_registry:
             if isinstance(exc, exception_types):
                 return handler_fn(exc)
+        # Not registered: consumers register their own APIException subclass handlers after import, and a
+        # registered catch-all would shadow them (first-match registry).
+        if isinstance(exc, APIException):
+            return ErrorResponse._from_api_exception(exc)
         return ErrorResponse._from_unhandled_exception(exc)
 
 
@@ -492,5 +496,3 @@ ErrorResponse.register_handler(MethodNotAllowed, ErrorResponse._from_method_not_
 ErrorResponse.register_handler((Http404, NotFound), ErrorResponse._from_http_404_exception)
 ErrorResponse.register_handler(PermissionDenied, ErrorResponse._from_permission_denied_exception)
 ErrorResponse.register_handler(DisallowedHost, ErrorResponse._from_disallowed_host_exception)
-# Must stay last: the registry is first-match, so specific APIException handlers above take precedence.
-ErrorResponse.register_handler(APIException, ErrorResponse._from_api_exception)

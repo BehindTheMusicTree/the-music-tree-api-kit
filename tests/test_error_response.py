@@ -89,3 +89,31 @@ def test_non_api_exception_still_500():
 
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert _body(response)["details"]["code"] == "internal_error"
+
+
+def test_consumer_registered_api_exception_handler_wins_over_fallback():
+    class ProviderDown(APIException):
+        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    handler = (
+        (ProviderDown,),
+        lambda exc: ErrorResponse.create_error_response(
+            error_detail={"message": "down", "code": "provider_down"},
+            api_error_code=ApiErrorCodeNumeric.SYSTEM_SERVICE_UNAVAILABLE,
+        ),
+    )
+    ErrorResponse._handler_registry.append(handler)
+    try:
+        body = _body(ErrorResponse.handle_exception(ProviderDown()))
+    finally:
+        ErrorResponse._handler_registry.remove(handler)
+
+    assert body["code"] == ApiErrorCodeNumeric.SYSTEM_SERVICE_UNAVAILABLE
+    assert body["details"] == {"message": "down", "code": "provider_down"}
+
+
+def test_fallback_keeps_code_given_at_raise_time():
+    response = ErrorResponse.handle_exception(APIException("boom", code="custom"))
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert _body(response)["details"] == {"message": "boom", "code": "custom"}
