@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.10.4] - 2026-10-15
+
+### Fixed
+
+- `AppFilterSet` compares request params in snake_case, so a camelCase pagination/non-filter param (`pageSize`, `withTotal`) matches its declared snake_case name whether or not `CamelToSnakeMiddleware` ran. `pageSize` is no longer a separate allowed entry; `ConsistentParametersFilterBackend` shares the same `PAGINATION_PARAMS` constant. Covered by `tests/test_filterset_non_filter_params.py`.
+
 ## [0.10.3] - 2026-10-15
 
 ### Changed

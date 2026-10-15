@@ -5,10 +5,12 @@ from the_music_tree_api_kit.exception.validation.app.AppValidationException impo
 from the_music_tree_api_kit.exception.validation.FieldValidationErrorCode import FieldValidationErrorCode
 from the_music_tree_api_kit.utils import data_transformer
 
+PAGINATION_PARAMS = frozenset({"page", "page_size"})
+
 
 class AppFilterSet(FilterSet):
-    # Pagination parameters that should not be considered as filters
-    allowed_non_filter_params = {"page", "page_size", "pageSize"}
+    # Snake_case names: incoming params are snake-cased before comparison, so camelCase clients match too
+    allowed_non_filter_params = PAGINATION_PARAMS
     strict = False
 
     @property
@@ -17,7 +19,8 @@ class AppFilterSet(FilterSet):
         invalid_filters = []
 
         for param in self.data:
-            if param not in valid_filters and param not in self.allowed_non_filter_params:
+            snake_param = data_transformer.to_snake_case(param)
+            if param not in valid_filters and snake_param not in self.allowed_non_filter_params:
                 invalid_filters.append(data_transformer.to_camel_case(param))
 
         if invalid_filters:
