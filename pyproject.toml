@@ -1,6 +1,6 @@
 [project]
 name = "the-music-tree-api-kit"
-version = "0.10.2"
+version = "0.10.3"
 description = "Shared generic HTTP-layer Django library (error handling, pagination, filtering, viewsets) for hear-the-music-tree-api and grow-the-music-tree-api"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -9,8 +9,8 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "Django==5.2.8",
-    "djangorestframework==3.15.1",
+    "Django>=5.2.8,<5.3",
+    "djangorestframework>=3.15.1,<4",
     "django-filter==25.2",
     "djangorestframework-camel-case==1.4.2",
 ]
