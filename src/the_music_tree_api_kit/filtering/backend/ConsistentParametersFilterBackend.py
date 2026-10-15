@@ -2,6 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from the_music_tree_api_kit.exception.validation.app.AppValidationException import AppValidationException
 from the_music_tree_api_kit.exception.validation.FieldValidationErrorCode import FieldValidationErrorCode
+from the_music_tree_api_kit.filtering.set.AppFilterSet import PAGINATION_PARAMS
 from the_music_tree_api_kit.utils import data_transformer
 
 
@@ -37,7 +38,7 @@ class ConsistentParametersFilterBackend(DjangoFilterBackend):
         filterset_class = view.filterset_class if hasattr(view, "filterset_class") else None
 
         for field_name in list(kwargs["data"].keys()):
-            if field_name not in ["page", "page_size"]:
+            if field_name not in PAGINATION_PARAMS:
                 if field_name not in original_query_params:
                     del kwargs["data"][field_name]
                 elif not filterset_class:
