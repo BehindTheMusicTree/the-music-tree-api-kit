@@ -22,6 +22,7 @@ def test_private_unique_resource_save_and_name_transform():
     fetched.save()
     fetched.refresh_from_db()
     assert fetched.updated_on is not None
+    assert fetched._name == "genre-renamed"
 
 
 @pytest.mark.django_db
@@ -59,3 +60,57 @@ def test_trackable_play_count_defaults_and_increments():
     playable.save(update_fields=["play_count"])
     playable.refresh_from_db()
     assert playable.play_count == 1
+
+
+@pytest.mark.django_db
+def test_plain_save_persists_every_changed_field():
+    user = get_user_model().objects.create(username="fixture-user")
+    playable = FixturePlayable.objects.create(user=user, _name="track")
+
+    playable._name = "renamed"
+    playable.play_count = 5
+    playable.save()
+    playable.refresh_from_db()
+
+    assert playable._name == "renamed"
+    assert playable.play_count == 5
+    assert playable.updated_on is not None
+
+
+@pytest.mark.django_db
+def test_partial_save_writes_listed_fields_and_updated_on_only():
+    user = get_user_model().objects.create(username="fixture-user")
+    playable = FixturePlayable.objects.create(user=user, _name="track")
+
+    playable._name = "renamed"
+    playable.play_count = 5
+    playable.save(update_fields=["play_count"])
+    playable.refresh_from_db()
+
+    assert playable.play_count == 5
+    assert playable._name == "track"
+    assert playable.updated_on is not None
+
+
+@pytest.mark.django_db
+def test_partial_save_does_not_mutate_caller_update_fields():
+    user = get_user_model().objects.create(username="fixture-user")
+    playable = FixturePlayable.objects.create(user=user, _name="track")
+    update_fields = ["play_count"]
+
+    playable.play_count = 1
+    playable.save(update_fields=update_fields)
+
+    assert update_fields == ["play_count"]
+
+
+@pytest.mark.django_db
+def test_save_with_update_fields_none_is_a_full_save():
+    user = get_user_model().objects.create(username="fixture-user")
+    playable = FixturePlayable.objects.create(user=user, _name="track")
+
+    playable._name = "renamed"
+    playable.save(update_fields=None)
+    playable.refresh_from_db()
+
+    assert playable._name == "renamed"
