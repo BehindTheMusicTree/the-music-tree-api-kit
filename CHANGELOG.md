@@ -13,6 +13,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-27
+
+### Fixed
+
+- A plain `save()` on an existing `PublicStandardResource` descendant now persists every changed field. It used to write only `updated_on`, because `BaseModel.save()` narrowed `update_fields` to the fields registered through `add_modified_field`. A partial `save(update_fields=[...])` still writes only the listed fields plus `updated_on`, and no longer mutates the caller's list. Covered by `tests/test_fixture_models.py`.
+
+### Removed
+
+- **BREAKING —** `ensure_update_field` / `ensure_update_fields` (the `BaseModel` static methods and the `save_context` functions). They narrowed a plain save the same way and had no callers.
+
 ## [0.10.4] - 2026-10-15
 
 ### Fixed
