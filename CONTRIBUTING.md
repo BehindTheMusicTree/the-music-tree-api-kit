@@ -100,19 +100,11 @@ Before opening a PR:
 
 ### 6. Releasing (For Maintainers)
 
-Releases are plain tags on `main` — there is no release branch or automated bump tool:
+Releases use an automated tag on `main`; there is no release branch or automated bump tool:
 
 1. Merge the PR(s) for the release into `main`.
 2. Bump `version` in `pyproject.toml` (typically as part of the last merged PR).
-3. Tag and push:
-
-   ```bash
-   git checkout main
-   git pull origin main
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
-
+3. Confirm the release tag workflow created `vX.Y.Z` for the merged commit. Investigate or rerun a failed workflow before proceeding.
 4. Consumers (`grow-the-music-tree-api`, `hear-the-music-tree-api`, `the-music-tree-genre-kit`) re-pin their dependency on this package to the new tag.
 
 ## License & Attribution
