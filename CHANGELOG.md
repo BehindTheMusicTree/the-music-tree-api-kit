@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Automate release tags after version changes merge to main.
+
 - Share project agent guidance across Claude and Codex, with CI checking for drift.
 
 ### Fixed
