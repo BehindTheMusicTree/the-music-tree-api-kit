@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-11
+
 ### Added
 
 - `commons_image` package: the Wikimedia Commons image pieces that grow's `Artist` had inline, made reusable. The abstract `CommonsImage` model (five `image_*` columns), `commons_image_complete_constraint(name)` (concrete models add it to their own `Meta`, since a subclass `Meta` does not inherit it), `validate_commons_image` (pure validator returning the first error message), `CommonsImageSerializer` (nested input field, JSON only; a plain DRF serializer so errors are reported under the parent's `image` field; accepts `null` when `allow_null`), and `commons_image_kwargs` / `commons_image_representation` to map an image object to and from the columns. Covered by `tests/test_commons_image.py`.
