@@ -1,6 +1,7 @@
 from django.db import models
 
 from the_music_tree_api_kit.base.BaseManager import BaseManager
+from the_music_tree_api_kit.commons_image.CommonsImage import CommonsImage, commons_image_complete_constraint
 from the_music_tree_api_kit.field.AppCharField import AppCharField
 from the_music_tree_api_kit.field.foreign_key.PrivateForeignKey import PrivateForeignKey
 from the_music_tree_api_kit.field.foreign_key.PrivateManyToManyField import PrivateManyToManyField
@@ -66,3 +67,13 @@ class FixturePlayable(TrackablePlayCount):
 
     class Meta:
         app_label = "fixture_app"
+
+
+class FixtureImaged(CommonsImage, PrivateUniqueResource):
+    _name = AppCharField(db_column="name", max_length=255)
+
+    objects = FixturePlayableManager()
+
+    class Meta:
+        app_label = "fixture_app"
+        constraints = [commons_image_complete_constraint("fixture_imaged_image_complete")]

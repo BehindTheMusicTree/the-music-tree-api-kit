@@ -84,3 +84,12 @@ def test_non_self_referencing_field_accepts_other_reference():
 
     assert serializer.is_valid(raise_exception=True)
     assert serializer.validated_data["parent"] == parent
+
+
+def test_duplicate_fields_are_checked_per_object():
+    find = AppInputSerializer._find_duplicate_fields
+    assert find('{"url": "a", "image": {"url": "b"}}') == []
+    assert find('{"items": [{"id": 1}, {"id": 2}]}') == []
+    assert find('{"url": "a", "url": "b"}') == ["url"]
+    assert find('{"image": {"url": "a", "url": "b"}}') == ["url"]
+    assert find("not json") == []

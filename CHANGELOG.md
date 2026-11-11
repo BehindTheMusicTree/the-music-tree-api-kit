@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `commons_image` package: the Wikimedia Commons image pieces that grow's `Artist` had inline, made reusable. The abstract `CommonsImage` model (five `image_*` columns), `commons_image_complete_constraint(name)` (concrete models add it to their own `Meta`, since a subclass `Meta` does not inherit it), `validate_commons_image` (pure validator returning the first error message), `CommonsImageSerializer` (nested input field, JSON only; a plain DRF serializer so errors are reported under the parent's `image` field; accepts `null` when `allow_null`), and `commons_image_kwargs` / `commons_image_representation` to map an image object to and from the columns. Covered by `tests/test_commons_image.py`.
+
 ### Changed
 
 - Automate release tags after version changes merge to main.
@@ -20,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Share project agent guidance across Claude and Codex, with CI checking for drift.
 
 ### Fixed
+
+- `AppInputSerializer` duplicate-field detection is per JSON object: a nested object reusing a parent field's name (`{"url": …, "image": {"url": …}}`) is no longer reported as a duplicate. Covered by `tests/test_serializer_fields.py`.
 
 - Restored the canonical Apache 2.0 license text: a sentence in the "Work" definition had been altered, so GitHub did not recognize the license.
 
