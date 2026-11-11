@@ -1,11 +1,16 @@
 import pytest
 from django.db import IntegrityError, transaction
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
 from tests.fixture_app.models import FixtureImaged
 from the_music_tree_api_kit.commons_image.CommonsImageSerializer import CommonsImageSerializer
 from the_music_tree_api_kit.commons_image.helpers import commons_image_kwargs, commons_image_representation
 from the_music_tree_api_kit.commons_image.validation import IMAGE_URL_LEN_MAX, validate_commons_image
 from the_music_tree_api_kit.exception.validation.app.AppValidationException import AppValidationException
+from the_music_tree_api_kit.serializer.AppInputSerializer import AppInputSerializer
 
 VALID = {
     "url": "https://upload.wikimedia.org/a.jpg",
@@ -88,32 +93,71 @@ def test_representation_round_trips():
     assert commons_image_representation(FixtureImaged()) is None
 
 
+class _Parent(AppInputSerializer):
+    url = serializers.CharField()
+    image = CommonsImageSerializer(required=False, allow_null=True)
+
+
+def _parent_request(body: dict):
+    request = Request(APIRequestFactory().post("/x/", data=body, format="json"))
+    request.user = None
+    return request
+
+
+def _run_parent(body: dict):
+    return _Parent(context={"request": _parent_request(body)}).run_validation(body)
+
+
 def test_serializer_accepts_valid_image():
     assert CommonsImageSerializer().run_validation(dict(VALID)) == VALID
 
 
-def test_serializer_accepts_missing_optional_keys():
+def test_serializer_fills_missing_optional_keys_with_none():
     data = {"url": VALID["url"], "page_url": VALID["page_url"], "license": "CC0"}
-    assert CommonsImageSerializer().run_validation(data) == data
+    assert CommonsImageSerializer().run_validation(data) == {**data, "author": None, "license_url": None}
 
 
 def test_serializer_null_only_when_allowed():
     assert CommonsImageSerializer(allow_null=True).run_validation(None) is None
+    with pytest.raises(ValidationError):
+        CommonsImageSerializer().run_validation(None)
 
 
-def test_serializer_rejects_http_url():
-    with pytest.raises(AppValidationException):
-        CommonsImageSerializer().run_validation({**VALID, "url": "http://x/a.jpg"})
+@pytest.mark.parametrize("value", ["", [], 3])
+def test_serializer_rejects_non_object(value):
+    with pytest.raises(ValidationError, match="image must be an object"):
+        CommonsImageSerializer().run_validation(value)
 
 
-def test_serializer_rejects_missing_url():
-    with pytest.raises(AppValidationException):
-        CommonsImageSerializer().run_validation({k: v for k, v in VALID.items() if k != "url"})
+def test_serializer_does_not_coerce_values():
+    with pytest.raises(ValidationError):
+        CommonsImageSerializer().run_validation({**VALID, "license": 123})
 
 
-def test_serializer_rejects_unknown_key():
-    with pytest.raises(AppValidationException):
-        CommonsImageSerializer().run_validation({**VALID, "extra": 1})
+@pytest.mark.parametrize(
+    "image",
+    [{**VALID, "url": "http://x/a.jpg"}, {k: v for k, v in VALID.items() if k != "url"}, {**VALID, "extra": 1}],
+)
+def test_serializer_rejects_invalid_image(image):
+    with pytest.raises(ValidationError):
+        CommonsImageSerializer().run_validation(image)
+
+
+def test_nested_in_parent_with_colliding_key_names():
+    body = {"url": "https://parent/", "image": dict(VALID)}
+    assert _run_parent(body)["image"] == VALID
+
+
+def test_nested_null_and_missing_image():
+    assert _run_parent({"url": "u", "image": None})["image"] is None
+    assert "image" not in _run_parent({"url": "u"})
+
+
+def test_nested_error_is_reported_under_the_image_field():
+    with pytest.raises(AppValidationException) as excinfo:
+        _run_parent({"url": "u", "image": {**VALID, "url": "http://x/a.jpg"}})
+    assert excinfo.value.field == "image"
+    assert "https URL" in str(excinfo.value.errors["image"])
 
 
 @pytest.mark.django_db

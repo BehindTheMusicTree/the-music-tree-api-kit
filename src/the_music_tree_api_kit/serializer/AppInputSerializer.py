@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
@@ -38,37 +37,28 @@ class AppInputSerializer[T](serializers.Serializer):
             or getattr(field, "child", None) is not None
         )
 
-    @staticmethod
-    def _get_raw_field_names(raw_data: str) -> list[str]:
-        # Remove whitespace and newlines between tokens to simplify parsing
-        raw_data = re.sub(r"\s+", "", raw_data)
-
-        # Find all field names using regex
-        # This pattern matches field names in JSON, handling escaped quotes
-        pattern = r'"((?:[^"\\]|\\.)*)":'
-        matches = re.finditer(pattern, raw_data)
-
-        # Return all field names found in the raw JSON
-        return [match.group(1).replace('\\"', '"') for match in matches]
-
     @classmethod
     def _find_duplicate_fields(cls, raw_data: str) -> list[str]:
+        """Keys repeated within a single JSON object, at any depth.
+
+        Counting keys across the whole body would flag a nested object that merely reuses a parent field's name
+        (an ``image.url`` next to a top-level ``url``), so each object is checked on its own.
+        """
+        duplicates: list[str] = []
+
+        def check_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+            seen: set[str] = set()
+            for key, _value in pairs:
+                if key in seen and key not in duplicates:
+                    duplicates.append(key)
+                seen.add(key)
+            return dict(pairs)
+
         try:
-            field_names = cls._get_raw_field_names(raw_data)
-            field_counts = {}
-            duplicates = []
-
-            for field in field_names:
-                if field in field_counts:
-                    if field_counts[field] == 1:  # Only add to duplicates once
-                        duplicates.append(field)
-                    field_counts[field] += 1
-                else:
-                    field_counts[field] = 1
-
-            return duplicates
-        except UnicodeDecodeError, AttributeError, json.JSONDecodeError:
+            json.loads(raw_data, object_pairs_hook=check_object)
+        except ValueError, RecursionError:
             return []
+        return duplicates
 
     def _collect_known_fields_and_malformed_array_fields_names(self, data: dict) -> tuple[set, list]:
         """
