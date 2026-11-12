@@ -9,6 +9,8 @@ from the_music_tree_api_kit.exception.validation.app.AppValidationException impo
 from the_music_tree_api_kit.exception.validation.FieldValidationErrorCode import FieldValidationErrorCode
 from the_music_tree_api_kit.serializer.AppInputSerializer import AppInputSerializer
 from the_music_tree_api_kit.serializer.field.AppCharField import AppCharField
+from the_music_tree_api_kit.serializer.field.AppField import AppField
+from the_music_tree_api_kit.serializer.field.AppListField import AppListField
 from the_music_tree_api_kit.serializer.field.foreign_key.NonSelfReferencingField import NonSelfReferencingField
 
 
@@ -93,3 +95,40 @@ def test_duplicate_fields_are_checked_per_object():
     assert find('{"url": "a", "url": "b"}') == ["url"]
     assert find('{"image": {"url": "a", "url": "b"}}') == ["url"]
     assert find("not json") == []
+
+
+class FixtureTagsInputSerializer(AppInputSerializer):
+    tags = AppListField(child=AppCharField(allow_blank=False), required=False, default=list)
+
+
+def test_app_list_field_returns_validated_items():
+    field = AppListField(child=AppCharField(allow_blank=False))
+
+    assert field.to_internal_value([" folk ", "jig"]) == ["folk", "jig"]
+
+
+def test_app_list_field_keeps_items_through_input_serializer():
+    serializer = FixtureTagsInputSerializer(data={"tags": ["Q7482056", "Q1378776"]})
+
+    assert serializer.is_valid(raise_exception=True)
+    assert serializer.validated_data["tags"] == ["Q7482056", "Q1378776"]
+
+
+def test_app_list_field_rejects_invalid_item_through_input_serializer():
+    serializer = FixtureTagsInputSerializer(data={"tags": ["Q7482056", ""]})
+
+    with pytest.raises(ValidationError) as exc_info:
+        serializer.is_valid(raise_exception=True)
+
+    converted = AppValidationException._detect_and_convert_from_drf_exception(exc_info.value)
+    assert converted is not None
+    assert converted.field == "tags"
+    assert converted.errors["tags"]["code"] == FieldValidationErrorCode.BLANK
+
+
+def test_app_field_without_concrete_drf_field_fails_loudly():
+    class BareAppField(AppField):
+        pass
+
+    with pytest.raises(NotImplementedError):
+        BareAppField().to_internal_value("value")
