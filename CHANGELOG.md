@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-12
+
 ### Fixed
 
 - `AppListField` no longer turns every non-empty list into `None`. `AppField.to_internal_value`, a silent sink returning `None`, shadowed the concrete DRF field in the MRO and is removed, so `super().to_internal_value` reaches the real field. A child's `AppValidationException` is now re-raised under the list field's name with the child's code (`AppListField.run_child_validation`) instead of being wrapped by DRF in an `{index: ...}` dict. Covered by `tests/test_serializer_fields.py`.
