@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-11-12
+
 ### Fixed
 
 - 401 responses for `NotAuthenticated` / `AuthenticationFailed` now carry a `WWW-Authenticate` header taken from the exception's `auth_header` (RFC 6750): `AuthenticationFailed` on a `Bearer` challenge adds `error="invalid_token", error_description="<code>"` (other schemes are untouched), `NotAuthenticated` sends the bare challenge, and no header is sent without an `auth_header`. The JSON body is unchanged. Covered by `tests/test_error_response.py`.
