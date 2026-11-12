@@ -140,9 +140,17 @@ class ErrorResponse:
             if code == "authentication_required"
             else ApiErrorCodeNumeric.AUTH_INVALID_CREDENTIALS
         )
-        return ErrorResponse.create_error_response(
+        response = ErrorResponse.create_error_response(
             error_detail={"message": message, "code": code}, api_error_code=api_error_code
         )
+        challenge = getattr(exception, "auth_header", None)
+        if challenge:
+            # RFC 6750 §3: a rejected presented token must say so; a missing one gets a bare challenge.
+            if isinstance(exception, AuthenticationFailed):
+                escaped_code = str(code).replace("\\", "\\\\").replace('"', '\\"')
+                challenge = f'{challenge} error="invalid_token", error_description="{escaped_code}"'
+            response["WWW-Authenticate"] = challenge
+        return response
 
     @staticmethod
     def _from_unhandled_integrity_error(exception: IntegrityError) -> JsonResponse:
