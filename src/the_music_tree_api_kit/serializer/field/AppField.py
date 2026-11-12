@@ -65,9 +65,10 @@ class AppField(Field):
 
     Note:
     -----
-    The base `to_internal_value()` method returns None to prevent
-    NotImplementedError when subclasses call super().to_internal_value().
-    All subclasses must override this method with their own implementation.
+    AppField deliberately does not define `to_internal_value()`: in a subclass such as
+    `AppListField(AppField, ListField)`, `super().to_internal_value()` must resolve to the
+    concrete DRF field through the MRO. A subclass without a concrete DRF field must
+    implement it, otherwise DRF's base Field raises NotImplementedError.
     """
 
     # Default mapping of DRF validation keys to our custom error codes
@@ -130,8 +131,4 @@ class AppField(Field):
             if getattr(self, "many", False) or isinstance(self, ListField):
                 field_name += "[]"
             return field_name
-        return None
-
-    def to_internal_value(self, data: Any) -> Any:
-        """To prevent subclasses' calls to super().to_internal_value() from raising NotImplementedError."""
         return None

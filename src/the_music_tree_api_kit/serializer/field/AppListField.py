@@ -2,6 +2,8 @@ from typing import Any
 
 from rest_framework.fields import ListField
 
+from the_music_tree_api_kit.exception.validation.app.AppValidationException import AppValidationException
+
 from .AppField import AppField
 
 
@@ -32,3 +34,18 @@ class AppListField(AppField, ListField):
             self.fail("not_a_list")
 
         return super().to_internal_value(data)
+
+    def run_child_validation(self, data: list[Any]) -> list[Any]:
+        # ListField would wrap a child's AppValidationException in an {index: detail} dict,
+        # dropping its error code and attributing it to an unnamed field.
+        validated = []
+        for item in data:
+            try:
+                validated.append(self.child.run_validation(item))
+            except AppValidationException as exc:
+                raise AppValidationException(
+                    message=exc.message,
+                    field_validation_error_code=exc.field_validation_error_code,
+                    field_name=self.get_error_field_name(),
+                ) from exc
+        return validated
