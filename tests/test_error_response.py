@@ -149,3 +149,31 @@ def test_no_auth_header_means_no_challenge(exception):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert not response.has_header("WWW-Authenticate")
+
+
+def test_challenge_with_realm_is_comma_separated():
+    exception = _with_auth_header(
+        AuthenticationFailed({"detail": "x", "code": "invalid_audience"}), 'Bearer realm="api"'
+    )
+
+    response = ErrorResponse.handle_exception(exception)
+
+    assert (
+        response["WWW-Authenticate"]
+        == 'Bearer realm="api", error="invalid_token", error_description="invalid_audience"'
+    )
+
+
+def test_non_bearer_scheme_is_passed_through_unchanged():
+    response = ErrorResponse.handle_exception(_with_auth_header(AuthenticationFailed(), 'Basic realm="api"'))
+
+    assert response["WWW-Authenticate"] == 'Basic realm="api"'
+
+
+def test_unsafe_code_characters_are_stripped_from_description():
+    exception = _with_auth_header(AuthenticationFailed({"detail": "x", "code": 'bad"\r\nco de'}), "Bearer")
+
+    response = ErrorResponse.handle_exception(exception)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response["WWW-Authenticate"] == 'Bearer error="invalid_token", error_description="badcode"'

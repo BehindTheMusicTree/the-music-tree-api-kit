@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from django.core.exceptions import DisallowedHost
@@ -145,10 +146,13 @@ class ErrorResponse:
         )
         challenge = getattr(exception, "auth_header", None)
         if challenge:
-            # RFC 6750 §3: a rejected presented token must say so; a missing one gets a bare challenge.
-            if isinstance(exception, AuthenticationFailed):
-                escaped_code = str(code).replace("\\", "\\\\").replace('"', '\\"')
-                challenge = f'{challenge} error="invalid_token", error_description="{escaped_code}"'
+            # RFC 6750 §3: a rejected presented bearer token must say so; a missing one gets the bare challenge.
+            if isinstance(exception, AuthenticationFailed) and challenge.split(" ", 1)[0].lower() == "bearer":
+                separator = ", " if " " in challenge else " "
+                description = re.sub(r"[^A-Za-z0-9_.-]", "", str(code))
+                challenge = f'{challenge}{separator}error="invalid_token"'
+                if description:
+                    challenge += f', error_description="{description}"'
             response["WWW-Authenticate"] = challenge
         return response
 
