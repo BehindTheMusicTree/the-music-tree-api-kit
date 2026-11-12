@@ -5,8 +5,10 @@ from django.http import Http404
 from rest_framework import status
 from rest_framework.exceptions import (
     APIException,
+    AuthenticationFailed,
     MethodNotAllowed,
     NotAcceptable,
+    NotAuthenticated,
     NotFound,
     PermissionDenied,
     Throttled,
@@ -117,3 +119,61 @@ def test_fallback_keeps_code_given_at_raise_time():
 
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert _body(response)["details"] == {"message": "boom", "code": "custom"}
+
+
+def _with_auth_header(exception, header):
+    exception.auth_header = header
+    return exception
+
+
+def test_authentication_failed_challenge_reports_invalid_token():
+    exception = _with_auth_header(AuthenticationFailed({"detail": "Bad token.", "code": "invalid_audience"}), "Bearer")
+
+    response = ErrorResponse.handle_exception(exception)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response["WWW-Authenticate"] == 'Bearer error="invalid_token", error_description="invalid_audience"'
+    assert _body(response)["details"] == {"message": "Bad token.", "code": "invalid_audience"}
+
+
+def test_not_authenticated_gets_bare_challenge():
+    response = ErrorResponse.handle_exception(_with_auth_header(NotAuthenticated(), "Bearer"))
+
+    assert response["WWW-Authenticate"] == "Bearer"
+    assert _body(response)["details"]["code"] == "not_authenticated"
+
+
+@pytest.mark.parametrize("exception", [NotAuthenticated(), AuthenticationFailed()])
+def test_no_auth_header_means_no_challenge(exception):
+    response = ErrorResponse.handle_exception(exception)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert not response.has_header("WWW-Authenticate")
+
+
+def test_challenge_with_realm_is_comma_separated():
+    exception = _with_auth_header(
+        AuthenticationFailed({"detail": "x", "code": "invalid_audience"}), 'Bearer realm="api"'
+    )
+
+    response = ErrorResponse.handle_exception(exception)
+
+    assert (
+        response["WWW-Authenticate"]
+        == 'Bearer realm="api", error="invalid_token", error_description="invalid_audience"'
+    )
+
+
+def test_non_bearer_scheme_is_passed_through_unchanged():
+    response = ErrorResponse.handle_exception(_with_auth_header(AuthenticationFailed(), 'Basic realm="api"'))
+
+    assert response["WWW-Authenticate"] == 'Basic realm="api"'
+
+
+def test_unsafe_code_characters_are_stripped_from_description():
+    exception = _with_auth_header(AuthenticationFailed({"detail": "x", "code": 'bad"\r\nco de'}), "Bearer")
+
+    response = ErrorResponse.handle_exception(exception)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response["WWW-Authenticate"] == 'Bearer error="invalid_token", error_description="badcode"'

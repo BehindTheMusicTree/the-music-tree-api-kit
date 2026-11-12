@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from django.core.exceptions import DisallowedHost
@@ -140,9 +141,20 @@ class ErrorResponse:
             if code == "authentication_required"
             else ApiErrorCodeNumeric.AUTH_INVALID_CREDENTIALS
         )
-        return ErrorResponse.create_error_response(
+        response = ErrorResponse.create_error_response(
             error_detail={"message": message, "code": code}, api_error_code=api_error_code
         )
+        challenge = getattr(exception, "auth_header", None)
+        if challenge:
+            # RFC 6750 §3: a rejected presented bearer token must say so; a missing one gets the bare challenge.
+            if isinstance(exception, AuthenticationFailed) and challenge.split(" ", 1)[0].lower() == "bearer":
+                separator = ", " if " " in challenge else " "
+                description = re.sub(r"[^A-Za-z0-9_.-]", "", str(code))
+                challenge = f'{challenge}{separator}error="invalid_token"'
+                if description:
+                    challenge += f', error_description="{description}"'
+            response["WWW-Authenticate"] = challenge
+        return response
 
     @staticmethod
     def _from_unhandled_integrity_error(exception: IntegrityError) -> JsonResponse:
