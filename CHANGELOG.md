@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Detail lookups now honor queryset visibility and object permissions in one query. Private resources remain owner-scoped; collection query filters do not affect detail lookup. `get_detail_queryset()` allows explicit detail filtering.
+
 ## [0.12.2] - 2026-11-12
 
 ### Fixed
