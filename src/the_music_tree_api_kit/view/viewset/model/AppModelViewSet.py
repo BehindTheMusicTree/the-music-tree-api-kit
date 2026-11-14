@@ -6,6 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db.models import QuerySet
 from rest_framework import status, viewsets
 from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -193,25 +194,27 @@ class AppModelViewSet[T: BaseModel](viewsets.ModelViewSet):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         lookup_value = self.kwargs[lookup_url_kwarg]
 
-        if self.lookup_field == "pk" and self.is_pk_uuid and not UUID_PATTERN.match(lookup_value):
+        if self.lookup_field == "pk" and self.is_pk_uuid and not UUID_PATTERN.fullmatch(str(lookup_value)):
             raise AppValidationException(
                 message=f"Invalid UUID format: {lookup_value}",
                 field_validation_error_code=FieldValidationErrorCode.FORMAT_INVALID,
                 field_name=self.lookup_field,
             )
 
-        try:
-            if self.is_private_resource:
-                filter_kwargs = {self.lookup_field: lookup_value, "user": get_request_owner(self.request)}
-            else:
-                filter_kwargs = {
-                    self.lookup_field: lookup_value,
-                }
+        queryset = self.get_detail_queryset()
+        if self.is_private_resource:
+            queryset = queryset.filter(user=get_request_owner(self.request))
+        obj = get_object_or_404(queryset, **{self.lookup_field: lookup_value})
+        self.check_object_permissions(self.request, obj)
+        return obj
 
-            obj = self.model_class.objects.get(**filter_kwargs)
-            return obj
-        except self.model_class.DoesNotExist:
-            return super().get_object()
+    def get_detail_queryset(self):
+        """Apply visibility rules, without collection filters from query parameters.
+
+        Override this hook to opt a resource into additional detail filtering.
+        Ownership and object permissions are still enforced by get_object().
+        """
+        return self.get_queryset()
 
     def get_serializer_class_for_non_standard_action(self) -> type[Serializer]:
         raise NotImplementedError(f"Action {self.action} not defined in viewset")
