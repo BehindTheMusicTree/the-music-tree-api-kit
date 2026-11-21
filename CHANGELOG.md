@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### CI
+
+- Add the canonical workflow-level `concurrency` to `agent-drift.yml`, `release-tag.yml` and `validate.yml`: a superseded pull-request run is cancelled, and a pushed commit's release-tag run is never replaced.
+
 ### Removed
 
 - Drop the tracked `.agent-plans/.gitignore`: plans now live in the common git directory.
