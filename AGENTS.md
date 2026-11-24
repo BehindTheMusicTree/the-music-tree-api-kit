@@ -8,6 +8,8 @@ builds on it.
 Read `CONTRIBUTING.md` for setup, validation and releases. Work branches start
 from and target `main` through a PR. Use the fixture app under `tests/` to exercise
 abstract models and migrations; consumers own their concrete migrations.
+PR titles are Conventional Commits: release-please derives versions and `CHANGELOG.md`
+from them, so never edit the changelog by hand.
 
 When reviewing changes, consult `.github/skills/code-review/SKILL.md` for
 package-specific risks. Graphify is optional when installed and useful.

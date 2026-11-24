@@ -91,7 +91,7 @@ Before opening a PR:
 
 - ✅ `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, and `uv run pytest` all pass
 - ✅ New abstractions have corresponding coverage in `tests/fixture_app/`
-- ✅ `CHANGELOG.md` updated under `[Unreleased]`
+- ✅ The PR title is a valid Conventional Commit (it drives the release notes; do not edit `CHANGELOG.md` by hand)
 - ✅ `README.md` updated if the package's scope or usage changed
 - ✅ No secrets, large files, or accidental commits
 - ✅ Branch targets `main`
@@ -100,11 +100,14 @@ Before opening a PR:
 
 ### 6. Releasing (For Maintainers)
 
-Releases use an automated tag on `main`; there is no release branch or automated bump tool:
+Releases are automated with [release-please](https://github.com/googleapis/release-please) on `main`:
 
-1. Merge the PR(s) for the release into `main`.
-2. Bump `version` in `pyproject.toml` (typically as part of the last merged PR).
-3. Confirm the release tag workflow created `vX.Y.Z` for the merged commit. Investigate or rerun a failed workflow before proceeding.
+1. Merging Conventional-Commit PRs into `main` makes the `Release` workflow open or update a single
+   release PR. It bumps `pyproject.toml` and `uv.lock` and writes `CHANGELOG.md`.
+2. CI arms squash auto-merge on the release PR, so it merges once the required checks pass, with no
+   human review (to hold a release, disable auto-merge on the PR or close it). The `Release` workflow
+   then creates the annotated `vX.Y.Z` tag. Investigate or rerun a failed workflow ("Re-run failed jobs").
+3. Do not create or push tags locally.
 4. Consumers (`grow-the-music-tree-api`, `hear-the-music-tree-api`, `the-music-tree-genre-kit`) re-pin their dependency on this package to the new tag.
 
 ## License & Attribution
