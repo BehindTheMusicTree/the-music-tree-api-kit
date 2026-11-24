@@ -4,26 +4,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Guidelines for Contributors
-
-- Add entries to the `[Unreleased]` section under the appropriate category: `Added`, `Changed`, `Improved`, `Deprecated`, `Removed`, `Fixed`.
-- Group related changes together; write clear, user-focused descriptions rather than raw git log dumps.
-- Mention tests within the related feature or fix entry — "Test" is not its own category.
-- On release, move `[Unreleased]` entries into a dated `## [X.Y.Z] - YYYY-MM-DD` section and leave an empty `[Unreleased]` above it.
-
-## [Unreleased]
-
-### CI
-
-- Add the canonical workflow-level `concurrency` to `agent-drift.yml`, `release-tag.yml` and `validate.yml`: a superseded pull-request run is cancelled, and a pushed commit's release-tag run is never replaced.
-
-### Removed
-
-- Drop the tracked `.agent-plans/.gitignore`: plans now live in the common git directory.
-
-### Fixed
-
-- **Agent directories**: Keep plans and scratch data out of Git while tracking the directory ignore rules.
+This file is maintained by release-please from Conventional-Commit PR titles; do not edit it by hand.
+Entries before the release-please adoption were written manually.
 
 ## [0.12.3] - 2026-11-15
 
