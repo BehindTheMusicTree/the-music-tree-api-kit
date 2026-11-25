@@ -1,4 +1,5 @@
 from django.conf import settings
+from rest_framework.exceptions import ParseError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
@@ -21,67 +22,32 @@ class AppPagination(PageNumberPagination):
         try:
             page_number = int(page_number)
             if page_number < 1:
-                from rest_framework.exceptions import ParseError
-
                 raise ParseError("Invalid page.")
         except TypeError, ValueError:
-            from rest_framework.exceptions import ParseError
-
             raise ParseError("Invalid page.")
 
         return page_number
 
     def get_page_size(self, request):
         """
-        Get the page size from request.
-        Support both 'page_size' and 'pageSize' parameters for backwards compatibility.
+        Reject a non-integer or < 1 `page_size` with 400 (DRF would otherwise
+        fall back silently or, for 0, disable pagination), and cap it at the max.
         """
-        page_size = self.page_size
+        if request is None or self.page_size_query_param not in request.query_params:
+            return self.page_size
 
-        if request is not None:
-            if self.page_size_query_param in request.query_params:
-                try:
-                    param_value = request.query_params[self.page_size_query_param]
-                    page_size = int(param_value)
-                except ValueError, TypeError:
-                    pass
+        try:
+            page_size = int(request.query_params[self.page_size_query_param])
+        except TypeError, ValueError:
+            raise ParseError("Invalid page size.")
+        if page_size < 1:
+            raise ParseError("Invalid page size.")
 
-            elif "pageSize" in request.query_params:
-                try:
-                    param_value = request.query_params["pageSize"]
-                    page_size = int(param_value)
-                except ValueError, TypeError:
-                    pass
-
-        if self.max_page_size and page_size > self.max_page_size:
-            return self.max_page_size
-
-        return page_size
+        return min(page_size, self.max_page_size) if self.max_page_size else page_size
 
     def get_paginated_response(self, data):
-        if not hasattr(self, "page") or self.page is None:
-            return Response(
-                {
-                    PaginatedResponseFields.OVERALL_TOTAL: 0,
-                    PaginatedResponseFields.NEXT: None,
-                    PaginatedResponseFields.PREVIOUS: None,
-                    PaginatedResponseFields.RESULTS: data,
-                    PaginatedResponseFields.PAGE: 1,
-                    PaginatedResponseFields.PAGE_SIZE: self.page_size,
-                    PaginatedResponseFields.TOTAL_PAGES: 0,
-                }
-            )
-
-        count = self.count
-
-        if hasattr(self, "request") and self.request is not None:
-            requested_page_size = self.get_page_size(self.request)
-            page_size = int(requested_page_size) if requested_page_size is not None else int(self.page_size)
-        else:
-            page_size = int(self.page.paginator.per_page) if hasattr(self.page, "paginator") else int(self.page_size)
-
-        total_pages = ((count + page_size - 1) // page_size) if count > 0 else 0
-
+        paginator = self.page.paginator
+        count = paginator.count
         return Response(
             {
                 PaginatedResponseFields.OVERALL_TOTAL: count,
@@ -89,10 +55,35 @@ class AppPagination(PageNumberPagination):
                 PaginatedResponseFields.PREVIOUS: self.get_previous_link(),
                 PaginatedResponseFields.RESULTS: data,
                 PaginatedResponseFields.PAGE: self.page.number,
-                PaginatedResponseFields.PAGE_SIZE: page_size,
-                PaginatedResponseFields.TOTAL_PAGES: total_pages,
+                PaginatedResponseFields.PAGE_SIZE: paginator.per_page,
+                PaginatedResponseFields.TOTAL_PAGES: paginator.num_pages if count > 0 else 0,
             }
         )
+
+    def get_paginated_response_schema(self, schema):
+        integer = {"type": "integer"}
+        link = {"type": "string", "nullable": True, "format": "uri"}
+        return {
+            "type": "object",
+            "required": [
+                PaginatedResponseFields.OVERALL_TOTAL,
+                PaginatedResponseFields.NEXT,
+                PaginatedResponseFields.PREVIOUS,
+                PaginatedResponseFields.RESULTS,
+                PaginatedResponseFields.PAGE,
+                PaginatedResponseFields.PAGE_SIZE,
+                PaginatedResponseFields.TOTAL_PAGES,
+            ],
+            "properties": {
+                PaginatedResponseFields.OVERALL_TOTAL: integer,
+                PaginatedResponseFields.NEXT: link,
+                PaginatedResponseFields.PREVIOUS: link,
+                PaginatedResponseFields.RESULTS: schema,
+                PaginatedResponseFields.PAGE: integer,
+                PaginatedResponseFields.PAGE_SIZE: integer,
+                PaginatedResponseFields.TOTAL_PAGES: integer,
+            },
+        }
 
     @property
     def count(self) -> int:
