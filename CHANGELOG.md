@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This file is maintained by release-please from Conventional-Commit PR titles; do not edit it by hand.
 Entries before the release-please adoption were written manually.
 
+## [0.12.5](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/compare/v0.12.4...v0.12.5) (2026-11-25)
+
+
+### Bug Fixes
+
+* **filtering:** keep RelatedObjectCharFilter from repeating rows on many-to-many ([#55](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/issues/55)) ([daf60ff](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/commit/daf60ff3f2771a10c1354bfb8869ea0ee2b3dc56))
+
 ## [0.12.4](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/compare/v0.12.3...v0.12.4) (2026-11-25)
 
 
