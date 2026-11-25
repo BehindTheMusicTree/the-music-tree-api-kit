@@ -1,5 +1,5 @@
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 
 from the_music_tree_api_kit.filtering.filter.char.EmptiableCharFilter import EmptiableCharFilter
 
@@ -8,6 +8,7 @@ class RelatedObjectCharFilter(EmptiableCharFilter):
     """
     A filter that handles filtering by a primary field of a related instance.
     When the filter value is empty, it returns results with no related instance.
+    Never repeats a row: a many-to-many relation is matched with EXISTS. Reverse relations are not supported.
     """
 
     def __init__(self, primary_field: str, lookup_expr: str = "iexact", *args, **kwargs):
@@ -30,5 +31,22 @@ class RelatedObjectCharFilter(EmptiableCharFilter):
                 return qs
             return qs.filter(**{f"{self.field_name}__isnull": True})
 
-        lookup = f"{self.field_name}__{self.primary_field}__{self.lookup_expr}"
-        return qs.filter(Q(**{lookup: value}))
+        lookup = f"{self.primary_field}__{self.lookup_expr}"
+        relation = qs.model._meta.get_field(self.field_name)
+        if not relation.is_relation:
+            raise ImproperlyConfigured(f"{self.field_name} is not a relation.")
+        if relation.one_to_many or (relation.many_to_many and relation.auto_created):
+            raise ImproperlyConfigured(f"{self.__class__.__name__} does not support reverse relations.")
+        if not relation.many_to_many:
+            # To-one: the join cannot repeat a row.
+            return qs.filter(Q(**{f"{self.field_name}__{lookup}": value}))
+
+        # A many-to-many join returns a row once per matching related row; EXISTS keeps one.
+        through = relation.remote_field.through
+        matches = through._base_manager.filter(
+            **{
+                relation.m2m_field_name(): OuterRef("pk"),
+                f"{relation.m2m_reverse_field_name()}__{lookup}": value,
+            }
+        )
+        return qs.filter(Exists(matches))
