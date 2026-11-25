@@ -3,6 +3,9 @@ from types import SimpleNamespace
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
+from django.db import models
+from django.test.utils import isolate_apps
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -29,11 +32,14 @@ class _ItemFilterSet(PrivateUniqueResourceFilterSet):
     name = NonEmptiableCharFilter(field_name="_name", field_name_public="name", lookup_expr="icontains")
     partner = ForeignKeyFilter(field_name="partner_category", field_name_public="partner")
     category = RelatedObjectCharFilter(primary_field="_name", field_name="category", field_name_public="category")
+    related = RelatedObjectCharFilter(
+        primary_field="_name", field_name="related_categories", field_name_public="related", lookup_expr="icontains"
+    )
     kind = OptionalEnumCharFilter(enum_class=_Kind, method="filter_kind")
 
     class Meta:
         model = FixtureItem
-        fields = ["name", "partner", "category", "kind", *PrivateUniqueResourceFilterSet.get_date_fields()]
+        fields = ["name", "partner", "category", "related", "kind", *PrivateUniqueResourceFilterSet.get_date_fields()]
 
     def filter_kind(self, queryset, name, value):
         return queryset.filter(_name=value.lower())
@@ -80,6 +86,11 @@ def _list(items, query):
 def _uuids(response):
     assert response.status_code == 200, response.content
     return {row["uuid"] for row in response.data["results"]}
+
+
+def _uuid_list(response):
+    assert response.status_code == 200, response.content
+    return [row["uuid"] for row in response.data["results"]]
 
 
 def _error_codes(response):
@@ -134,3 +145,68 @@ def test_descendant_aware_filter_rejects_cycles(items, instance_pk, is_descendan
         descendant_filter.filter(FixtureCategory.objects.all(), str(target.pk))
 
     assert code in json.dumps(raised.value.detail)
+
+
+@pytest.mark.django_db
+def test_many_to_many_filter_lists_each_row_once(items):
+    for name in ("Rock A", "Rock B"):
+        items.paired.related_categories.add(FixtureCategory.objects.create(user=items.user, _name=name))
+
+    response = _list(items, "related=rock")
+
+    assert _uuid_list(response) == [str(items.paired.uuid)]
+    assert response.data["overallTotal"] == 1
+
+
+@pytest.mark.django_db
+def test_many_to_many_filter_empty_value_lists_unlinked_rows(items):
+    items.paired.related_categories.add(items.category)
+
+    assert _uuid_list(_list(items, "related=")) == [str(items.alone.uuid)]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("relation", ["items", "related_items"])
+def test_reverse_relation_is_rejected(relation):
+    related_filter = RelatedObjectCharFilter(primary_field="_name", field_name=relation, field_name_public=relation)
+
+    with pytest.raises(ImproperlyConfigured):
+        related_filter.filter(FixtureCategory.objects.all(), "name")
+
+
+@pytest.mark.parametrize("value", ["name", ""])
+def test_nested_path_is_rejected(value):
+    related_filter = RelatedObjectCharFilter(primary_field="_name", field_name="category__items", field_name_public="x")
+
+    with pytest.raises(ImproperlyConfigured):
+        related_filter.filter(FixtureItem.objects.all(), value)
+
+
+@isolate_apps("tests.fixture_app")
+def test_many_to_many_filter_follows_through_to_field():
+    class Tag(models.Model):
+        class Meta:
+            app_label = "fixture_app"
+
+        name = models.CharField(max_length=255)
+
+    class Document(models.Model):
+        class Meta:
+            app_label = "fixture_app"
+
+        code = models.IntegerField(unique=True)
+        tags = models.ManyToManyField(Tag, through="DocumentTag")
+
+    class DocumentTag(models.Model):
+        class Meta:
+            app_label = "fixture_app"
+
+        document = models.ForeignKey(Document, to_field="code", on_delete=models.CASCADE)
+        tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+
+    tags_filter = RelatedObjectCharFilter(primary_field="name", field_name="tags", field_name_public="tags")
+
+    sql = str(tags_filter.filter(Document.objects.all(), "rock").query)
+
+    assert '"fixture_app_documenttag" U0' in sql
+    assert 'U0."document_id" = ("fixture_app_document"."code")' in sql
