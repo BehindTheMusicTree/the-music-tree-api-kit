@@ -1,5 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Exists, OuterRef, Q, QuerySet
+from django.db.models.constants import LOOKUP_SEP
 
 from the_music_tree_api_kit.filtering.filter.char.EmptiableCharFilter import EmptiableCharFilter
 
@@ -8,7 +9,7 @@ class RelatedObjectCharFilter(EmptiableCharFilter):
     """
     A filter that handles filtering by a primary field of a related instance.
     When the filter value is empty, it returns results with no related instance.
-    Never repeats a row: a many-to-many relation is matched with EXISTS. Reverse relations are not supported.
+    Never repeats a row: a many-to-many relation is matched with EXISTS. Reverse relations and nested paths are not supported.
     """
 
     def __init__(self, primary_field: str, lookup_expr: str = "iexact", *args, **kwargs):
@@ -32,6 +33,8 @@ class RelatedObjectCharFilter(EmptiableCharFilter):
             return qs.filter(**{f"{self.field_name}__isnull": True})
 
         lookup = f"{self.primary_field}__{self.lookup_expr}"
+        if LOOKUP_SEP in self.field_name:
+            raise ImproperlyConfigured(f"{self.__class__.__name__} does not support nested paths: {self.field_name}.")
         relation = qs.model._meta.get_field(self.field_name)
         if not relation.is_relation:
             raise ImproperlyConfigured(f"{self.field_name} is not a relation.")
@@ -43,9 +46,12 @@ class RelatedObjectCharFilter(EmptiableCharFilter):
 
         # A many-to-many join returns a row once per matching related row; EXISTS keeps one.
         through = relation.remote_field.through
+        source_name = relation.m2m_field_name()
+        # Not always the pk: the through foreign key may declare to_field.
+        source_key = through._meta.get_field(source_name).target_field.attname
         matches = through._base_manager.filter(
             **{
-                relation.m2m_field_name(): OuterRef("pk"),
+                source_name: OuterRef(source_key),
                 f"{relation.m2m_reverse_field_name()}__{lookup}": value,
             }
         )

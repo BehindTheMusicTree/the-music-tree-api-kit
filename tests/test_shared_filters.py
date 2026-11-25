@@ -4,6 +4,8 @@ from types import SimpleNamespace
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
+from django.db import models
+from django.test.utils import isolate_apps
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -170,3 +172,40 @@ def test_reverse_relation_is_rejected(relation):
 
     with pytest.raises(ImproperlyConfigured):
         related_filter.filter(FixtureCategory.objects.all(), "name")
+
+
+def test_nested_path_is_rejected():
+    related_filter = RelatedObjectCharFilter(primary_field="_name", field_name="category__items", field_name_public="x")
+
+    with pytest.raises(ImproperlyConfigured):
+        related_filter.filter(FixtureItem.objects.all(), "name")
+
+
+@isolate_apps("tests.fixture_app")
+def test_many_to_many_filter_follows_through_to_field():
+    class Tag(models.Model):
+        class Meta:
+            app_label = "fixture_app"
+
+        name = models.CharField(max_length=255)
+
+    class Document(models.Model):
+        class Meta:
+            app_label = "fixture_app"
+
+        code = models.IntegerField(unique=True)
+        tags = models.ManyToManyField(Tag, through="DocumentTag")
+
+    class DocumentTag(models.Model):
+        class Meta:
+            app_label = "fixture_app"
+
+        document = models.ForeignKey(Document, to_field="code", on_delete=models.CASCADE)
+        tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+
+    tags_filter = RelatedObjectCharFilter(primary_field="name", field_name="tags", field_name_public="tags")
+
+    sql = str(tags_filter.filter(Document.objects.all(), "rock").query)
+
+    assert '"fixture_app_documenttag" U0' in sql
+    assert 'U0."document_id" = ("fixture_app_document"."code")' in sql
