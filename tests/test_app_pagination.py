@@ -47,7 +47,7 @@ def test_invalid_page_size_is_rejected(user, value):
     assert _list(user, {"page_size": value}).status_code == 400
 
 
-def test_page_size_is_capped_at_max(user, settings):
+def test_page_size_is_capped_at_max(user):
     response = _list(user, {"page_size": 10**6})
     assert response.status_code == 200
     assert response.data["pageSize"] == AppPagination.max_page_size
@@ -74,3 +74,6 @@ def test_paginated_response_schema():
         "totalPages",
     }
     assert schema["properties"]["results"] == {"type": "array"}
+    assert set(schema["required"]) == set(schema["properties"])
+    assert schema["properties"]["next"]["nullable"] is True
+    assert schema["properties"]["overallTotal"] == {"type": "integer"}
