@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This file is maintained by release-please from Conventional-Commit PR titles; do not edit it by hand.
 Entries before the release-please adoption were written manually.
 
+## [0.12.4](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/compare/v0.12.3...v0.12.4) (2026-11-25)
+
+
+### Bug Fixes
+
+* **pagination:** reject invalid page_size with 400 ([#53](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/issues/53)) ([ebff0eb](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/commit/ebff0eb45709ccc50c49c25b1a6f815ac35c6eab))
+
 ## [0.12.3] - 2026-11-15
 
 ### Fixed
