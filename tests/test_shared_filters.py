@@ -174,11 +174,12 @@ def test_reverse_relation_is_rejected(relation):
         related_filter.filter(FixtureCategory.objects.all(), "name")
 
 
-def test_nested_path_is_rejected():
+@pytest.mark.parametrize("value", ["name", ""])
+def test_nested_path_is_rejected(value):
     related_filter = RelatedObjectCharFilter(primary_field="_name", field_name="category__items", field_name_public="x")
 
     with pytest.raises(ImproperlyConfigured):
-        related_filter.filter(FixtureItem.objects.all(), "name")
+        related_filter.filter(FixtureItem.objects.all(), value)
 
 
 @isolate_apps("tests.fixture_app")

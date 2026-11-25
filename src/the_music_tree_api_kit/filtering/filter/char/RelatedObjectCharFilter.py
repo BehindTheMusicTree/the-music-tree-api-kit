@@ -23,6 +23,8 @@ class RelatedObjectCharFilter(EmptiableCharFilter):
     def filter(self, qs: QuerySet, value: str | None) -> QuerySet:
         if not self.field_name:
             raise ImproperlyConfigured("field_name must be set.")
+        if LOOKUP_SEP in self.field_name:
+            raise ImproperlyConfigured(f"{self.__class__.__name__} does not support nested paths: {self.field_name}.")
 
         if value is None:
             return qs
@@ -33,8 +35,6 @@ class RelatedObjectCharFilter(EmptiableCharFilter):
             return qs.filter(**{f"{self.field_name}__isnull": True})
 
         lookup = f"{self.primary_field}__{self.lookup_expr}"
-        if LOOKUP_SEP in self.field_name:
-            raise ImproperlyConfigured(f"{self.__class__.__name__} does not support nested paths: {self.field_name}.")
         relation = qs.model._meta.get_field(self.field_name)
         if not relation.is_relation:
             raise ImproperlyConfigured(f"{self.field_name} is not a relation.")
