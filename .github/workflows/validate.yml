@@ -57,8 +57,40 @@ jobs:
       - name: makemigrations --check
         run: uv run django-admin makemigrations the_music_tree_api_kit --check --dry-run
 
+  # Job-level routing (#52, github-config#85): `Pytest` may be a required check, so no workflow-level paths filter.
+  # A skipped job counts as passing; `!cancelled()` makes a failed `route` run the suite instead of skipping it.
+  route:
+    name: Pytest route
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.route.outputs.mode }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Classify changed files
+        id: route
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request ]]; then echo mode=full >>"$GITHUB_OUTPUT"; exit 0; fi
+          # --no-renames lists both names of a rename; HEAD^1 is the base tip the PR was merged onto.
+          # A file, not $(...): command substitution drops the NUL separators.
+          diff_file="$RUNNER_TEMP/changed-files"
+          if git diff --no-renames -z --name-only HEAD^1 HEAD >"$diff_file" && [[ -s $diff_file ]]; then
+            python3 scripts/pytest_route.py <"$diff_file" >>"$GITHUB_OUTPUT"
+          else
+            echo mode=full >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Summary
+        run: echo "Pytest route is ${{ steps.route.outputs.mode }}" >>"$GITHUB_STEP_SUMMARY"
+
   pytest:
     name: Pytest
+    needs: route
+    if: ${{ !cancelled() && needs.route.outputs.mode != 'skip' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
