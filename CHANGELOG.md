@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This file is maintained by release-please from Conventional-Commit PR titles; do not edit it by hand.
 Entries before the release-please adoption were written manually.
 
+## [0.12.6](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/compare/v0.12.5...v0.12.6) (2026-11-26)
+
+
+### Documentation
+
+* point the README CI badge at validate.yml ([#59](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/issues/59)) ([a02c9c9](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/commit/a02c9c90375fc8cbf138dcbc3ccf3c7795bcba53))
+
 ## [0.12.5](https://github.com/BehindTheMusicTree/the-music-tree-api-kit/compare/v0.12.4...v0.12.5) (2026-11-25)
 
 
