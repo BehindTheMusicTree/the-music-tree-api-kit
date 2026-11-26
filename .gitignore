@@ -22,3 +22,7 @@ graphify-out/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+
+# Coverage reports
+.coverage
+coverage.xml
