@@ -8,7 +8,7 @@ from scripts.pytest_route import classify
     [["README.md"], ["CHANGELOG.md", "LICENSE"], [".github/skills/code-review/SKILL.md", ".pr-descriptions/x.md"]],
 )
 def test_documentation_only_skips(paths):
-    assert classify(paths) == ("skip", [])
+    assert classify(paths) == (False, [])
 
 
 @pytest.mark.parametrize(
@@ -25,4 +25,4 @@ def test_documentation_only_skips(paths):
     ],
 )
 def test_anything_else_runs_full(paths):
-    assert classify(paths)[0] == "full"
+    assert classify(paths)[0] is True
