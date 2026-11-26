@@ -79,7 +79,7 @@ jobs:
           # A file, not $(...): command substitution drops the NUL separators.
           diff_file="$RUNNER_TEMP/changed-files"
           if git diff --no-renames -z --name-only HEAD^1 HEAD >"$diff_file" && [[ -s $diff_file ]]; then
-            python3 scripts/pytest_route.py <"$diff_file" >>"$GITHUB_OUTPUT"
+            python3 scripts/pytest_route.py <"$diff_file" >>"$GITHUB_OUTPUT" || echo mode=full >>"$GITHUB_OUTPUT"
           else
             echo mode=full >>"$GITHUB_OUTPUT"
           fi
@@ -123,10 +123,18 @@ jobs:
   tests-success:
     name: Tests success
     if: always()
-    needs: [pytest, coverage]
+    needs: [route, pytest, coverage]
     runs-on: ubuntu-latest
     steps:
+      # `pytest` and `coverage` are skipped together when `route` skips the suite (documentation-only PR); `route` itself
+      # must always succeed so a failed or cancelled route still fails the gate.
       - name: All test jobs succeeded
         env:
           NEEDS: ${{ toJSON(needs) }}
-        run: jq -e 'all(.[]; .result == "success")' <<<"$NEEDS"
+        run: |
+          jq -e '
+            .route.result == "success"
+            and (if .route.outputs.mode == "skip"
+                 then (.pytest.result == "skipped" and .coverage.result == "skipped")
+                 else (.pytest.result == "success" and .coverage.result == "success") end)
+          ' <<<"$NEEDS"
