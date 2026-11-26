@@ -1,6 +1,9 @@
+import io
+import sys
+
 import pytest
 
-from scripts.pytest_route import classify
+from scripts.pytest_route import classify, main
 
 
 @pytest.mark.parametrize(
@@ -8,7 +11,7 @@ from scripts.pytest_route import classify
     [["README.md"], ["CHANGELOG.md", "LICENSE"], [".github/skills/code-review/SKILL.md", ".pr-descriptions/x.md"]],
 )
 def test_documentation_only_skips(paths):
-    assert classify(paths) == ("skip", [])
+    assert classify(paths) == (False, [])
 
 
 @pytest.mark.parametrize(
@@ -25,4 +28,14 @@ def test_documentation_only_skips(paths):
     ],
 )
 def test_anything_else_runs_full(paths):
-    assert classify(paths)[0] == "full"
+    assert classify(paths)[0] is True
+
+
+@pytest.mark.parametrize(
+    ("stdin", "expected"), [(b"README.md\0", "applicable=false"), (b"src/x.py\0", "applicable=true")]
+)
+def test_main_prints_the_applicable_output(monkeypatch, capsys, stdin, expected):
+    # The `Tests success` gate compares this GITHUB_OUTPUT line to "true"/"false" exactly.
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(stdin)))
+    main()
+    assert capsys.readouterr().out == f"{expected}\n"
