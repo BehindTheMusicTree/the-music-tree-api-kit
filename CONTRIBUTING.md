@@ -58,7 +58,7 @@ There is no automated branch-name enforcement — these prefixes are a conventio
 uv run pytest
 ```
 
-Also run before opening a PR — these are the same checks CI runs (`.github/workflows/test.yml`, jobs `Lint`, `Fixture makemigrations check`, `Pytest`):
+Also run before opening a PR — these are the same checks CI runs (`.github/workflows/validate.yml`, jobs `Lint`, `Fixture makemigrations check`, `Pytest`). CI also runs the shared organization coverage check (`coverage`: lines 80 %, branches 70 %, changed lines 90 %) on the `Pytest` report, and the `Tests success` job fails unless `Pytest` and `coverage` both succeed:
 
 ```bash
 uv run ruff check .
